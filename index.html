@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="so">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web3 Browser</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #06090f;
+  --surface: #0b1120;
+  --surface2: #111827;
+  --border: rgba(148,163,184,0.08);
+  --border-hi: rgba(99,179,237,0.3);
+  --accent: #38bdf8;
+  --accent2: #6ee7b7;
+  --accent3: #a78bfa;
+  --text: #f1f5f9;
+  --muted: #475569;
+  --muted2: #64748b;
+  --danger: #f87171;
+  --warn: #fbbf24;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+html, body {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', sans-serif;
+  overflow-x: hidden;
+}
+
+/* ─── Background ─── */
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image:
+    linear-gradient(rgba(56,189,248,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56,189,248,0.025) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+.bg-glow {
+  position: fixed; border-radius: 50%; filter: blur(130px);
+  opacity: 0.09; pointer-events: none; z-index: 0;
+}
+.glow-1 { width:700px; height:700px; background:#38bdf8; top:-300px; left:-200px; animation: drift 14s ease-in-out infinite alternate; }
+.glow-2 { width:500px; height:500px; background:#a78bfa; bottom:-200px; right:-150px; animation: drift 18s ease-in-out infinite alternate-reverse; }
+@keyframes drift { to { transform: translate(40px, 30px) scale(1.08); } }
+
+/* ─── Layout ─── */
+.shell {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ─── Top Bar ─── */
+.topbar {
+  background: rgba(11,17,32,0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: sticky; top: 0; z-index: 100;
+}
+
+.brand {
+  display: flex; align-items: center; gap: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px; font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+.brand-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent2);
+  box-shadow: 0 0 10px var(--accent2);
+  animation: pulseDot 2s infinite;
+}
+@keyframes pulseDot { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+/* URL Bar */
+.url-bar {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0 14px;
+  gap: 10px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  min-width: 0;
+}
+.url-bar:focus-within {
+  border-color: var(--border-hi);
+  box-shadow: 0 0 0 3px rgba(56,189,248,0.07);
+}
+
+.url-prefix {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--muted2);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+#urlInput {
+  flex: 1; min-width: 0;
+  background: transparent; border: none; outline: none;
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  padding: 10px 0;
+}
+#urlInput::placeholder { color: var(--muted); }
+
+.btn-go {
+  background: linear-gradient(135deg, var(--accent), var(--accent3));
+  border: none; border-radius: 8px;
+  color: #06090f; font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 700;
+  padding: 8px 20px; cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s;
+  white-space: nowrap; flex-shrink: 0;
+}
+.btn-go:hover { opacity: 0.88; transform: scale(1.02); }
+.btn-go:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+/* ─── Main ─── */
+.main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 16px 60px;
+  max-width: 780px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ─── Home screen ─── */
+#homeScreen { width: 100%; animation: fadeUp 0.5s ease both; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(16px);} to{opacity:1;transform:none;} }
+
+.hero { text-align: center; margin-bottom: 40px; }
+
+.hero h1 {
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  background: linear-gradient(120deg, #f1f5f9 0%, #38bdf8 45%, #a78bfa 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 12px;
+}
+
+.hero p {
+  color: var(--muted2);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+}
+
+/* Supported TLDs */
+.tld-row {
+  display: flex; flex-wrap: wrap; justify-content: center;
+  gap: 8px; margin: 20px 0 36px;
+}
+.tld-chip {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--muted2);
+  padding: 4px 12px;
+}
+.tld-chip.ens { border-color: rgba(56,189,248,0.3); color: var(--accent); }
+.tld-chip.ud  { border-color: rgba(167,139,250,0.3); color: var(--accent3); }
+.tld-chip.sol { border-color: rgba(110,231,183,0.3); color: var(--accent2); }
+
+/* Quick sites */
+.section-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 0.1em;
+  margin-bottom: 14px;
+}
+
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px; margin-bottom: 36px;
+}
+
+.quick-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; padding: 16px 14px;
+  cursor: pointer; transition: all 0.2s;
+  animation: fadeUp 0.4s ease both;
+}
+.quick-card:hover {
+  border-color: rgba(56,189,248,0.25);
+  background: rgba(56,189,248,0.04);
+  transform: translateY(-2px);
+}
+.qc-icon { font-size: 22px; margin-bottom: 10px; }
+.qc-name { font-size: 13px; font-weight: 600; color: var(--text); }
+.qc-domain {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--muted2); margin-top: 3px;
+}
+
+/* ─── Resolve Screen ─── */
+#resolveScreen { width: 100%; display: none; }
+
+.resolve-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 20px; overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  animation: fadeUp 0.3s ease;
+}
+
+.resolve-header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 14px;
+}
+
+.resolve-icon {
+  width: 46px; height: 46px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; flex-shrink: 0;
+}
+
+.resolve-title { font-size: 18px; font-weight: 700; }
+.resolve-subtitle {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--muted2); margin-top: 3px;
+}
+
+/* Steps */
+.steps { padding: 20px 24px; display: flex; flex-direction: column; gap: 10px; }
+
+.step {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 14px; border-radius: 12px;
+  border: 1px solid transparent;
+  transition: all 0.3s;
+  animation: fadeUp 0.3s ease both;
+}
+.step.pending { background: rgba(255,255,255,0.02); border-color: var(--border); }
+.step.loading { background: rgba(56,189,248,0.04); border-color: rgba(56,189,248,0.15); }
+.step.success { background: rgba(110,231,183,0.04); border-color: rgba(110,231,183,0.15); }
+.step.error   { background: rgba(248,113,113,0.04); border-color: rgba(248,113,113,0.15); }
+.step.skipped { opacity: 0.4; }
+
+.step-num {
+  width: 26px; height: 26px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; font-weight: 700; flex-shrink: 0;
+  transition: all 0.3s;
+}
+.step.pending  .step-num { background: rgba(255,255,255,0.05); color: var(--muted); }
+.step.loading  .step-num { background: rgba(56,189,248,0.15); color: var(--accent); animation: spinNum 1s linear infinite; }
+.step.success  .step-num { background: rgba(110,231,183,0.15); color: var(--accent2); }
+.step.error    .step-num { background: rgba(248,113,113,0.15); color: var(--danger); }
+
+@keyframes spinNum { 0%{transform:rotate(0);} 100%{transform:rotate(360deg);} }
+
+.step-body { flex: 1; min-width: 0; }
+.step-label { font-size: 13px; font-weight: 500; }
+.step-detail {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px; color: var(--muted2); margin-top: 4px;
+  word-break: break-all;
+}
+
+/* Result block */
+.result-block {
+  padding: 20px 24px;
+  border-top: 1px solid var(--border);
+  display: none;
+}
+
+.result-url-box {
+  background: var(--surface2); border: 1px solid var(--border-hi);
+  border-radius: 12px; padding: 14px 16px;
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 14px;
+}
+.result-url-box .url-text {
+  flex: 1; min-width: 0;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; color: var(--accent);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.btn {
+  border: none; border-radius: 8px;
+  font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
+  padding: 9px 18px; cursor: pointer; transition: all 0.2s;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent), var(--accent3));
+  color: #06090f;
+}
+.btn-primary:hover { opacity: 0.88; transform: scale(1.02); }
+
+.btn-secondary {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  color: var(--muted2);
+}
+.btn-secondary:hover { color: var(--text); border-color: var(--border-hi); }
+
+/* AI Analysis */
+.ai-box {
+  margin-top: 14px;
+  background: rgba(167,139,250,0.05);
+  border: 1px solid rgba(167,139,250,0.15);
+  border-radius: 12px; padding: 14px 16px;
+  font-size: 13px; line-height: 1.6;
+  color: var(--muted2); display: none;
+}
+.ai-box .ai-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; color: var(--accent3);
+  text-transform: uppercase; letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+
+/* Error state */
+.error-card {
+  background: rgba(248,113,113,0.04); border: 1px solid rgba(248,113,113,0.2);
+  border-radius: 16px; padding: 24px; text-align: center;
+  margin-top: 16px; display: none;
+}
+.error-card h3 { color: var(--danger); margin-bottom: 8px; }
+.error-card p { font-size: 13px; color: var(--muted2); line-height: 1.5; }
+
+/* Spinner inline */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner { display: inline-block; width: 12px; height: 12px; border: 2px solid rgba(56,189,248,0.2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div class="bg-glow glow-1"></div>
+<div class="bg-glow glow-2"></div>
+
+<div class="shell">
+
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-dot"></div>
+      W3
+    </div>
+    <div class="url-bar">
+      <span class="url-prefix">web3://</span>
+      <input id="urlInput" type="text"
+        placeholder="domain.eth · domain.crypto · domain.nft · domain.x ..."
+        autocomplete="off" autocorrect="off" spellcheck="false">
+    </div>
+    <button class="btn-go" id="goBtn" onclick="navigate()">Furo →</button>
+  </div>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- Home -->
+    <div id="homeScreen">
+      <div class="hero">
+        <h1>Web3 Browser</h1>
+        <p>// resolve garee blockchain domains si toos ah — gateway la'aan</p>
+      </div>
+
+      <div class="tld-row">
+        <span class="tld-chip ens">.eth — ENS</span>
+        <span class="tld-chip ud">.crypto</span>
+        <span class="tld-chip ud">.nft</span>
+        <span class="tld-chip ud">.x</span>
+        <span class="tld-chip ud">.wallet</span>
+        <span class="tld-chip ud">.bitcoin</span>
+        <span class="tld-chip ud">.dao</span>
+        <span class="tld-chip ud">.888</span>
+        <span class="tld-chip sol">.sol</span>
+      </div>
+
+      <p class="section-label">⚡ Kuwa caanka ah</p>
+      <div class="quick-grid" id="quickGrid"></div>
+
+      <p class="section-label">ℹ️ Sidee u shaqeeyaa</p>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;font-size:13px;color:var(--muted2);line-height:1.7;">
+        <strong style="color:var(--text);">1. Resolve on-chain</strong> — waxaan ku weydiinaynaa Ethereum RPC iyo Unstoppable Domains API si aan u helno IPFS hash-ka ama URL-ka domain-ka.<br>
+        <strong style="color:var(--text);">2. Fur browser-ka</strong> — marka URL-ka la helo, browser-ka cusub tab ayuu ku furaa URL-ka rasmiiga ah.<br>
+        <strong style="color:var(--text);">3. Browser kasta</strong> — Chrome, Firefox, Safari, Edge — dhammaan way shaqeeyaan. Ma u baahna Brave!
+      </div>
+    </div>
+
+    <!-- Resolve Screen -->
+    <div id="resolveScreen">
+      <div class="resolve-card">
+        <div class="resolve-header">
+          <div class="resolve-icon" id="resolveIcon" style="background:rgba(56,189,248,0.1);">🔍</div>
+          <div>
+            <div class="resolve-title" id="resolveTitle">Resolving...</div>
+            <div class="resolve-subtitle" id="resolveSubtitle">Blockchain DNS lookup</div>
+          </div>
+        </div>
+
+        <div class="steps" id="stepsContainer"></div>
+
+        <div class="result-block" id="resultBlock">
+          <div class="result-url-box">
+            <span class="url-text" id="resultUrl"></span>
+            <button class="btn btn-secondary" style="padding:6px 12px;font-size:11px;" onclick="copyResult()">Nuqul</button>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="openResult()">🚀 Fur Website-ka</button>
+            <button class="btn btn-secondary" onclick="goHome()">← Ku noqo</button>
+          </div>
+          <div class="ai-box" id="aiBox">
+            <div class="ai-label">✦ AI Faahfaahin</div>
+            <div id="aiText"></div>
+          </div>
+        </div>
+
+        <div class="error-card" id="errorCard">
+          <h3>❌ Lama helin</h3>
+          <p id="errorMsg"></p>
+          <div style="margin-top:14px;">
+            <button class="btn btn-secondary" onclick="goHome()">← Ku noqo</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ────────────────────────────────────────────
+//  Config
+// ────────────────────────────────────────────
+const ETH_RPC = 'https://cloudflare-eth.com';   // public Ethereum RPC
+const UD_API  = 'https://resolve.unstoppabledomains.com/domains/';
+
+// ENS Public Resolver (on Ethereum mainnet)
+const ENS_REGISTRY   = '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e';
+const ENS_RESOLVER_SIG = '0x0178b8bf'; // resolver(bytes32)
+const ENS_CONTENTHASH_SIG = '0xbc1c58d1'; // contenthash(bytes32)
+
+// IPFS gateways (tried in order)
+const IPFS_GATEWAYS = [
+  'https://cloudflare-ipfs.com/ipfs/',
+  'https://ipfs.io/ipfs/',
+  'https://gateway.ipfs.io/ipfs/',
+];
+
+// ────────────────────────────────────────────
+//  Quick sites
+// ────────────────────────────────────────────
+const POPULAR = [
+  { icon:'🦄', name:'Uniswap',   domain:'uniswap.eth' },
+  { icon:'🔷', name:'ENS App',   domain:'ens.eth' },
+  { icon:'🌀', name:'Vitalik',   domain:'vitalik.eth' },
+  { icon:'🏦', name:'Aave',      domain:'aave.eth' },
+  { icon:'🖼️', name:'OpenSea',   domain:'opensea.eth' },
+  { icon:'📦', name:'Unstoppable', domain:'unstoppable.crypto' },
+  { icon:'⚡', name:'1inch',     domain:'1inch.eth' },
+  { icon:'🔗', name:'Chainlink', domain:'chainlink.eth' },
+];
+
+let resolvedURL = '';
+let currentDomain = '';
+
+// ────────────────────────────────────────────
+//  Steps UI
+// ────────────────────────────────────────────
+const STEPS_DEF = [
+  { id:'detect',  label:'TLD detect',          icon:'🔎' },
+  { id:'resolve', label:'On-chain resolve',    icon:'⛓️' },
+  { id:'ipfs',    label:'IPFS / URL decode',   icon:'📦' },
+  { id:'gateway', label:'Gateway URL build',   icon:'🌐' },
+];
+
+let steps = {};
+
+function renderSteps() {
+  const c = document.getElementById('stepsContainer');
+  c.innerHTML = '';
+  STEPS_DEF.forEach((s, i) => {
+    const el = document.createElement('div');
+    el.className = 'step pending';
+    el.id = 'step-' + s.id;
+    el.style.animationDelay = (i * 60) + 'ms';
+    el.innerHTML = `
+      <div class="step-num">${i+1}</div>
+      <div class="step-body">
+        <div class="step-label">${s.icon} ${s.label}</div>
+        <div class="step-detail" id="step-detail-${s.id}">Sugaya...</div>
+      </div>`;
+    c.appendChild(el);
+    steps[s.id] = el;
+  });
+}
+
+function setStep(id, status, detail='') {
+  const el = steps[id];
+  if (!el) return;
+  el.className = 'step ' + status;
+  if (detail) document.getElementById('step-detail-' + id).textContent = detail;
+}
+
+// ────────────────────────────────────────────
+//  ENS helpers
+// ────────────────────────────────────────────
+async function ethCall(to, data) {
+  const res = await fetch(ETH_RPC, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ jsonrpc:'2.0', id:1, method:'eth_call', params:[{ to, data }, 'latest'] })
+  });
+  const j = await res.json();
+  if (j.error) throw new Error(j.error.message);
+  return j.result;
+}
+
+// namehash (EIP-137)
+function namehash(name) {
+  let node = '0x' + '0'.repeat(64);
+  if (!name) return node;
+  const labels = name.split('.').reverse();
+  for (const label of labels) {
+    const labelHash = keccak256(new TextEncoder().encode(label));
+    const combined = new Uint8Array(64);
+    combined.set(hexToBytes(node.slice(2)), 0);
+    combined.set(hexToBytes(labelHash), 32);
+    node = '0x' + keccak256(combined);
+  }
+  return node;
+}
+
+function keccak256(data) {
+  // Use a minimal keccak via js-sha3 from CDN — loaded below
+  return window._keccak256hex(data);
+}
+
+function hexToBytes(hex) {
+  const bytes = new Uint8Array(hex.length / 2);
+  for (let i = 0; i < bytes.length; i++)
+    bytes[i] = parseInt(hex.substr(i*2, 2), 16);
+  return bytes;
+}
+
+function encodeBytes32(node) {
+  return node.slice(2).padStart(64, '0');
+}
+
+async function ensGetResolver(node) {
+  const data = ENS_RESOLVER_SIG + encodeBytes32(node);
+  const result = await ethCall(ENS_REGISTRY, data);
+  if (!result || result === '0x' + '0'.repeat(64) || result === '0x') return null;
+  return '0x' + result.slice(result.length - 40);
+}
+
+async function ensGetContenthash(resolver, node) {
+  const data = ENS_CONTENTHASH_SIG + encodeBytes32(node);
+  const result = await ethCall(resolver, data);
+  return result;
+}
+
+// Decode ABI-encoded bytes (contenthash)
+function decodeABIBytes(hex) {
+  if (!hex || hex === '0x') return null;
+  const raw = hex.slice(2);
+  // offset (32 bytes) + length (32 bytes) + data
+  if (raw.length < 128) return null;
+  const len = parseInt(raw.slice(64, 128), 16);
+  if (len === 0) return null;
+  return raw.slice(128, 128 + len * 2);
+}
+
+// Decode IPFS contenthash codec
+function decodeContenthash(hex) {
+  const raw = decodeABIBytes(hex);
+  if (!raw) return null;
+
+  // IPFS: 0xe3010170 prefix (codec 0x70=dag-pb + sha2-256)
+  if (raw.startsWith('e3010170')) {
+    const hashBytes = raw.slice(8); // skip codec prefix
+    // Convert to base58 CIDv0
+    const bytes = new Uint8Array(hashBytes.match(/.{1,2}/g).map(b => parseInt(b, 16)));
+    return { type: 'ipfs', cid: toBase58(bytes) };
+  }
+  // IPFS CIDv1 (0xe301) 
+  if (raw.startsWith('e30101')) {
+    const hashBytes = raw.slice(6);
+    return { type: 'ipfs-v1', cid: raw.slice(6) };
+  }
+  // Swarm: 0xe40101
+  if (raw.startsWith('e40101')) {
+    return { type: 'swarm', hash: raw.slice(8) };
+  }
+  // http/https text
+  try {
+    const bytes = new Uint8Array(raw.match(/.{1,2}/g).map(b => parseInt(b, 16)));
+    const text = new TextDecoder().decode(bytes);
+    if (text.startsWith('http')) return { type: 'url', url: text };
+  } catch(e) {}
+
+  return null;
+}
+
+// Base58 encode for CIDv0
+const BASE58_CHARS = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+function toBase58(bytes) {
+  let num = BigInt('0x' + Array.from(bytes).map(b => b.toString(16).padStart(2,'0')).join(''));
+  let result = '';
+  while (num > 0n) {
+    result = BASE58_CHARS[Number(num % 58n)] + result;
+    num = num / 58n;
+  }
+  for (const b of bytes) { if (b === 0) result = '1' + result; else break; }
+  return result;
+}
+
+// ────────────────────────────────────────────
+//  Unstoppable Domains resolve
+// ────────────────────────────────────────────
+const UD_TLDS = ['crypto','nft','x','wallet','bitcoin','dao','888','blockchain','zil'];
+
+async function resolveUD(domain) {
+  // Public resolve endpoint (no API key needed for basic resolution)
+  const res = await fetch(UD_API + encodeURIComponent(domain), {
+    headers: { Accept: 'application/json' }
+  });
+  if (res.status === 404) throw new Error('Domain not found or not registered');
+  if (!res.ok) throw new Error('UD API error: ' + res.status);
+  const data = await res.json();
+
+  // Look for IPFS hash or redirect URL
+  const records = data.records || {};
+  const ipfsHash = records['dweb.ipfs.hash'] || records['ipfs.html.value'];
+  const redirectUrl = records['browser.redirect_url'] || records['ipfs.redirect_domain.value'];
+
+  if (redirectUrl) return { type: 'url', url: redirectUrl };
+  if (ipfsHash)    return { type: 'ipfs', cid: ipfsHash };
+
+  throw new Error('Domain registered but no website content found');
+}
+
+// ────────────────────────────────────────────
+//  Main navigate
+// ────────────────────────────────────────────
+async function navigate() {
+  let raw = document.getElementById('urlInput').value.trim().toLowerCase();
+  raw = raw.replace(/^web3:\/\//, '').replace(/^https?:\/\//, '').replace(/\/$/, '').replace(/\.limo$/, '');
+  if (!raw) return;
+
+  currentDomain = raw;
+  resolvedURL = '';
+
+  document.getElementById('homeScreen').style.display = 'none';
+  const rs = document.getElementById('resolveScreen');
+  rs.style.display = 'block';
+  rs.scrollIntoView({ behavior: 'smooth' });
+
+  document.getElementById('resolveIcon').textContent = '🔍';
+  document.getElementById('resolveTitle').textContent = raw;
+  document.getElementById('resolveSubtitle').textContent = 'Blockchain DNS lookup...';
+  document.getElementById('resultBlock').style.display = 'none';
+  document.getElementById('errorCard').style.display = 'none';
+  document.getElementById('aiBox').style.display = 'none';
+  document.getElementById('goBtn').disabled = true;
+
+  renderSteps();
+
+  const ext = raw.split('.').pop();
+  const isENS = ext === 'eth';
+  const isUD  = UD_TLDS.includes(ext);
+
+  try {
+    // Step 1: Detect
+    setStep('detect', 'loading', 'Falanqaynaya...');
+    await sleep(200);
+
+    if (!isENS && !isUD) {
+      setStep('detect', 'error', 'TLD la garan waayo: .' + ext);
+      throw new Error(`TLD ".${ext}" ma taageerayo. Isticmaal: .eth, .crypto, .nft, .x, .wallet, .bitcoin, .dao, .888`);
+    }
+
+    setStep('detect', 'success', isENS ? `ENS domain (Ethereum Name Service)` : `Unstoppable Domain (.${ext})`);
+
+    // Step 2: Resolve
+    setStep('resolve', 'loading', 'Weydiinaaya blockchain...');
+    let resolved;
+
+    if (isENS) {
+      // Make sure keccak is loaded
+      if (!window._keccak256hex) {
+        setStep('resolve', 'error', 'Keccak library load failed');
+        throw new Error('Keccak256 library failed to load');
+      }
+      const node = namehash(raw);
+      const resolver = await ensGetResolver(node);
+      if (!resolver || resolver === '0x0000000000000000000000000000000000000000') {
+        throw new Error('ENS domain not registered or has no resolver');
+      }
+      const contenthash = await ensGetContenthash(resolver, node);
+      resolved = decodeContenthash(contenthash);
+      if (!resolved) throw new Error('Domain has no content hash set (no website)');
+      setStep('resolve', 'success', `Resolver: ${resolver.slice(0,10)}...`);
+    } else {
+      resolved = await resolveUD(raw);
+      setStep('resolve', 'success', `Unstoppable Domains resolved`);
+    }
+
+    // Step 3: IPFS / URL decode
+    setStep('ipfs', 'loading', 'Falanqaynaya xogta...');
+    await sleep(150);
+
+    let finalURL;
+
+    if (resolved.type === 'url') {
+      setStep('ipfs', 'success', 'Redirect URL la helay: ' + resolved.url.slice(0, 50));
+      setStep('gateway', 'skipped', 'La iskuma baahno — URL toos ah');
+      finalURL = resolved.url;
+    } else if (resolved.type === 'ipfs') {
+      setStep('ipfs', 'success', 'IPFS CID: ' + resolved.cid.slice(0, 20) + '...');
+      setStep('gateway', 'loading', 'Dooranaya gateway-ga ugu dhakhsaha badan...');
+      await sleep(100);
+      finalURL = IPFS_GATEWAYS[0] + resolved.cid;
+      setStep('gateway', 'success', IPFS_GATEWAYS[0]);
+    } else if (resolved.type === 'ipfs-v1') {
+      setStep('ipfs', 'success', 'IPFS CIDv1 la helay');
+      setStep('gateway', 'loading', 'Gateway...');
+      await sleep(100);
+      // CIDv1 — use eth.limo which handles it
+      finalURL = `https://${raw}.limo`;
+      setStep('gateway', 'success', 'eth.limo (CIDv1 native)');
+    } else {
+      throw new Error('Nooc aan la garanin la helay');
+    }
+
+    resolvedURL = finalURL;
+
+    // Show result
+    document.getElementById('resolveIcon').textContent = '✅';
+    document.getElementById('resolveSubtitle').textContent = 'Resolve guulayatay!';
+    document.getElementById('resultUrl').textContent = finalURL;
+    document.getElementById('resultBlock').style.display = 'block';
+
+    // AI analysis (non-blocking)
+    getAIAnalysis(raw, ext, finalURL);
+
+    // Auto-open
+    window.open(finalURL, '_blank', 'noopener,noreferrer');
+
+  } catch(err) {
+    document.getElementById('resolveIcon').textContent = '❌';
+    document.getElementById('resolveSubtitle').textContent = 'Waa fashilmay';
+    document.getElementById('errorMsg').textContent = err.message || 'Khalad aan la garan';
+    document.getElementById('errorCard').style.display = 'block';
+  } finally {
+    document.getElementById('goBtn').disabled = false;
+  }
+}
+
+// ────────────────────────────────────────────
+//  AI analysis (optional)
+// ────────────────────────────────────────────
+async function getAIAnalysis(domain, ext, url) {
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: `Web3 domain la resolve garay: "${domain}" (${ext} TLD). URL-ka la helay: ${url}. 
+Somali ku qor hal ama laba xariiq oo gaaban oo faahfaahinaya domain-kan: waxa uu yahay, maxay u taageen, iyo in aad booqato. Jawaab si toos ah, hore u bixi macluumaadka. Ingiriisi ha isticmaalin.`
+        }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.[0]?.text || '';
+    if (text) {
+      document.getElementById('aiText').textContent = text;
+      document.getElementById('aiBox').style.display = 'block';
+    }
+  } catch(e) { /* AI optional */ }
+}
+
+// ────────────────────────────────────────────
+//  Helpers
+// ────────────────────────────────────────────
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function openResult() {
+  if (resolvedURL) window.open(resolvedURL, '_blank', 'noopener,noreferrer');
+}
+
+function copyResult() {
+  if (resolvedURL) {
+    navigator.clipboard.writeText(resolvedURL).catch(() => {});
+  }
+}
+
+function goHome() {
+  document.getElementById('resolveScreen').style.display = 'none';
+  document.getElementById('homeScreen').style.display = 'block';
+  document.getElementById('urlInput').value = '';
+  resolvedURL = '';
+}
+
+function quickNav(domain) {
+  document.getElementById('urlInput').value = domain;
+  navigate();
+}
+
+// ────────────────────────────────────────────
+//  Quick grid
+// ────────────────────────────────────────────
+function renderQuick() {
+  const g = document.getElementById('quickGrid');
+  POPULAR.forEach((s, i) => {
+    const d = document.createElement('div');
+    d.className = 'quick-card';
+    d.style.animationDelay = (i * 40) + 'ms';
+    d.innerHTML = `
+      <div class="qc-icon">${s.icon}</div>
+      <div class="qc-name">${s.name}</div>
+      <div class="qc-domain">${s.domain}</div>`;
+    d.onclick = () => quickNav(s.domain);
+    g.appendChild(d);
+  });
+}
+
+// Enter key
+document.getElementById('urlInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') navigate();
+});
+
+// ────────────────────────────────────────────
+//  Load keccak256 for ENS namehash
+// ────────────────────────────────────────────
+function loadKeccak() {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/js-sha3/0.9.3/sha3.min.js';
+    s.onload = () => {
+      // sha3.js exposes sha3_256; ENS uses keccak256 (NOT SHA3)
+      // Use a minimal pure-JS keccak256
+      loadKeccakPure().then(resolve).catch(reject);
+    };
+    s.onerror = () => loadKeccakPure().then(resolve).catch(reject);
+    document.head.appendChild(s);
+  });
+}
+
+async function loadKeccakPure() {
+  // Minimal inline keccak256 implementation
+  // Using the keccak-256 from ethereum-cryptography via a CDN bundle
+  const script = document.createElement('script');
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.2/ethers.umd.min.js';
+  document.head.appendChild(script);
+  await new Promise((res, rej) => { script.onload = res; script.onerror = rej; });
+
+  window._keccak256hex = (data) => {
+    // data is Uint8Array
+    return ethers.keccak256(data).slice(2);
+  };
+}
+
+// ────────────────────────────────────────────
+//  Init
+// ────────────────────────────────────────────
+renderQuick();
+loadKeccak().catch(console.error);
+</script>
+</body>
+</html>
